@@ -1,5 +1,5 @@
 from sgp4.api import Satrec, jday
-from math import degrees, radians, atan2, sqrt, sin, cos
+from math import degrees, radians, atan2, sqrt, sin, cos 
 
 def read_tle_from_file(file_path):
     with open(file_path, 'r') as file:
