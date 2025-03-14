@@ -30,22 +30,22 @@ def eci_to_lat_lon(position, jd):
     e2 = f * (2 - f)  # Square of eccentricity
     omega = 7.2921150e-5  # Earth's rotation rate in rad/s
     
-    # Calculate Greenwich Sidereal Time (GST)
-    T = (jd - 2451545.0) / 36525.0
-    GST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) \
-          + 0.000387933 * T**2 - (T**3) / 38710000.0
-    GST = GST % 360.0
-    GST = radians(GST)
-    print(f"GST (radians): {GST}")
-    
-    # Rotate ECI coordinates to Earth-fixed coordinates
-    jd_fraction = jd - int(jd)
-    seconds_in_day = jd_fraction * 86400.0
-    theta = GST + omega * seconds_in_day
-    x_earth = x * cos(theta) + y * sin(theta)
-    y_earth = -x * sin(theta) + y * cos(theta)
-    z_earth = z
-    print(f"Earth-fixed coordinates: x={x_earth}, y={y_earth}, z={z_earth}")
+# Calculate Greenwich Sidereal Time (GST)
+T = (jd - 2451545.0) / 36525.0
+GST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) \
+      + 0.000387933 * T**2 - (T**3) / 38710000.0
+GST = GST % 360.0
+GST = radians(GST)
+print(f"GST (radians): {GST}")
+
+# Rotate ECI coordinates to Earth-fixed coordinates
+jd_fraction = jd - int(jd)
+seconds_in_day = jd_fraction * 86400.0
+theta = GST + omega * seconds_in_day
+x_earth = x * cos(theta) + y * sin(theta)
+y_earth = -x * sin(theta) + y * cos(theta)
+z_earth = z
+print(f"Earth-fixed coordinates: x={x_earth}, y={y_earth}, z={z_earth}")
     
     # Calculate longitude
     lon = atan2(y_earth, x_earth)
