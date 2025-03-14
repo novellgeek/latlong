@@ -39,7 +39,9 @@ def eci_to_lat_lon(position, jd):
     print(f"GST (radians): {GST}")
     
     # Rotate ECI coordinates to Earth-fixed coordinates
-    theta = GST + omega * (jd - int(jd)) * 86400.0
+    jd_fraction = jd - int(jd)
+    seconds_in_day = jd_fraction * 86400.0
+    theta = GST + omega * seconds_in_day
     x_earth = x * cos(theta) + y * sin(theta)
     y_earth = -x * sin(theta) + y * cos(theta)
     z_earth = z
