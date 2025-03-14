@@ -47,29 +47,29 @@ y_earth = -x * sin(theta) + y * cos(theta)
 z_earth = z
 print(f"Earth-fixed coordinates: x={x_earth}, y={y_earth}, z={z_earth}")
     
-    # Calculate longitude
-    lon = atan2(y_earth, x_earth)
-    
-    # Calculate latitude using iterative method
-    r = sqrt(x_earth**2 + y_earth**2)
-    E2 = a**2 - (a * (1 - f))**2
-    lat = atan2(z_earth, r)
-    for _ in range(5):
-        C = a / sqrt(1 - e2 * sin(lat)**2)
-        lat = atan2(z_earth + e2 * C * sin(lat), r)
-    
-    # Convert from radians to degrees
-    lat = degrees(lat)
-    lon = degrees(lon)
-    
-    # Normalize longitude to the range [-180, 180]
-    if lon > 180:
-        lon -= 360
-    elif lon < -180:
-        lon += 360
-    
-    print(f"Latitude: {lat}, Longitude: {lon}")
-    return lat, lon
+# Calculate longitude
+lon = atan2(y_earth, x_earth)
+
+# Calculate latitude using iterative method
+r = sqrt(x_earth**2 + y_earth**2)
+E2 = a**2 - (a * (1 - f))**2
+lat = atan2(z_earth, r)
+for _ in range(5):
+    C = a / sqrt(1 - e2 * sin(lat)**2)
+    lat = atan2(z_earth + e2 * C * sin(lat), r)
+
+# Convert from radians to degrees
+lat = degrees(lat)
+lon = degrees(lon)
+
+# Normalize longitude to the range [-180, 180]
+if lon > 180:
+    lon -= 360
+elif lon < -180:
+    lon += 360
+
+print(f"Latitude: {lat}, Longitude: {lon}")
+return lat, long
 
 def tle_to_lat_lon(line1, line2, jd):
     satellite = Satrec.twoline2rv(line1, line2)
