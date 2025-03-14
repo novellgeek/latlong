@@ -36,7 +36,6 @@ def eci_to_lat_lon(position, jd):
           + 0.000387933 * T**2 - (T**3) / 38710000.0
     GST = GST % 360.0
     GST = radians(GST)
-    print(f"GST (radians): {GST}")
     
     # Rotate ECI coordinates to Earth-fixed coordinates
     jd_fraction = jd - int(jd)
@@ -45,18 +44,14 @@ def eci_to_lat_lon(position, jd):
     x_earth = x * cos(theta) + y * sin(theta)
     y_earth = -x * sin(theta) + y * cos(theta)
     z_earth = z
-    print(f"Earth-fixed coordinates: x={x_earth}, y={y_earth}, z={z_earth}")
     
     # Calculate longitude
     lon = atan2(y_earth, x_earth)
     
-    # Calculate latitude using iterative method
+    # Calculate latitude using Bowring's method (non-iterative)
     r = sqrt(x_earth**2 + y_earth**2)
     E2 = a**2 - (a * (1 - f))**2
-    lat = atan2(z_earth, r)
-    for _ in range(5):
-        C = a / sqrt(1 - e2 * sin(lat)**2)
-        lat = atan2(z_earth + e2 * C * sin(lat), r)
+    lat = atan2(z_earth, r * (1 - e2))
     
     # Convert from radians to degrees
     lat = degrees(lat)
@@ -68,7 +63,6 @@ def eci_to_lat_lon(position, jd):
     elif lon < -180:
         lon += 360
     
-    print(f"Latitude: {lat}, Longitude: {lon}")
     return lat, lon
 
 def tle_to_lat_lon(line1, line2, jd):
