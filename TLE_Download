@@ -1,0 +1,68 @@
+# requires pip install requests sgp4
+# requires pip install requests
+
+import requests
+import csv
+from sgp4.api import Satrec
+from sgp4.api import jday
+from datetime import datetime, timezone
+from math import degrees, atan2, sqrt
+import getpass
+
+def main():
+    try:
+        base_url = "https://www.space-track.org"
+        auth_path = "/ajaxauth/login"
+        user_name = input("Enter your username: ")
+        password = getpass.getpass("Enter your password: ")
+        norad_cat_ids = read_norad_cat_ids_from_column_b("C:\\Spacetrack\\spacetrack.csv")
+        query = f"/basicspacedata/query/class/gp/NORAD_CAT_ID/{norad_cat_ids}//EPOCH/%3Enow-30/orderby/NORAD_CAT_ID/format/3le"
+
+        session = requests.Session()
+        session.post(base_url + auth_path, data={"identity": user_name, "password": password})
+
+        response = session.get(base_url + query)
+        tle_data = response.text.splitlines()
+
+        with open("satcat.csv", "w", newline='') as csvfile:
+            fieldnames = ['Satellite Name', 'Latitude', 'Longitude']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for i in range(0, len(tle_data), 3):
+                if i + 2 < len(tle_data):
+                    sat_name = tle_data[i].strip()
+                    line1 = tle_data[i + 1].strip()
+                    line2 = tle_data[i + 2].strip()
+                    lat, lon = tle_to_lat_lon(line1, line2)
+                    if lat is not None and lon is not None:
+                        writer.writerow({'Satellite Name': sat_name, 'Latitude': lat, 'Longitude': lon})
+
+        session.get(base_url + "/ajaxauth/logout")
+
+    except Exception as e:
+        print(e)
+
+def read_norad_cat_ids_from_column_b(file_path):
+    norad_cat_ids = []
+    with open(file_path, newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)  # Skip the header
+        for row in reader:
+            if len(row) > 1:
+                norad_cat_ids.append(row[1].strip())
+    return ",".join(norad_cat_ids)
+
+def tle_to_lat_lon(line1, line2):
+    satellite = Satrec.twoline2rv(line1, line2)
+    now = datetime.now(timezone.utc)
+    jd, fr = jday(now.year, now.month, now.day, now.hour, now.minute, now.second)
+    e, r, v = satellite.sgp4(jd, fr)
+    if e == 0:
+        lat = degrees(atan2(r[2], sqrt(r[0]**2 + r[1]**2)))
+        lon = degrees(atan2(r[1], r[0]))
+        return lat, lon
+    else:
+        return None, None
+
+if __name__ == "__main__":
+    main()
