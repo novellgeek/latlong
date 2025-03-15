@@ -1,100 +1,63 @@
 from sgp4.api import Satrec, jday
-from math import degrees, radians, atan2, sqrt, sin, cos 
+from datetime import datetime, timezone
+import numpy as np
+import pymap3d as pm
+from astropy.time import Time
+from astropy.coordinates import EarthLocation, TEME, ITRS
+from astropy import units as u
 
-def read_tle_from_file(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
-        tle_data = [line.strip() for line in lines if line.strip()]
-    return tle_data
+# Define the TLE for TJS-10
+tle_name = "TJS-10"
+tle_line1 = "1 58204U 23169A   25073.71113927  .00000000  00000-0  00000+0 0  9997"
+tle_line2 = "2 58204   1.3555  86.0418 0003920 202.7140 313.1699  1.00269225  5067"
 
-def parse_jday_from_tle(line1):
-    epoch_year = int(line1[18:20])
-    epoch_day = float(line1[20:32])
-    
-    if epoch_year < 57:
-        year = 2000 + epoch_year
-    else:
-        year = 1900 + epoch_year
-    
-    jd, fr = jday(year, 1, 1, 0, 0, 0)
-    jd += epoch_day - 1
-    print(f"Epoch Year: {year}, Epoch Day: {epoch_day}, Julian Date: {jd}")
-    return jd
-
-def eci_to_lat_lon(position, jd):
-    x, y, z = position
-    
-    # Constants
-    a = 6378.137  # Earth's semi-major axis in km
-    f = 1 / 298.257223563  # Earth's flattening factor
-    e2 = f * (2 - f)  # Square of eccentricity
-    omega = 7.2921150e-5  # Earth's rotation rate in rad/s
-    
-    # Calculate Greenwich Sidereal Time (GST)
-    T = (jd - 2451545.0) / 36525.0
-    GST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) \
-          + 0.000387933 * T**2 - (T**3) / 38710000.0
-    GST = GST % 360.0
-    GST = radians(GST)
-    
-    # Rotate ECI coordinates to Earth-fixed coordinates
-    jd_fraction = jd - int(jd)
-    seconds_in_day = jd_fraction * 86400.0
-    theta = GST + omega * seconds_in_day
-    x_earth = x * cos(theta) + y * sin(theta)
-    y_earth = -x * sin(theta) + y * cos(theta)
-    z_earth = z
-    
-    # Calculate longitude
-    lon = atan2(y_earth, x_earth)
-    
-    # Calculate latitude using Bowring's method (non-iterative)
-    r = sqrt(x_earth**2 + y_earth**2)
-    E2 = a**2 - (a * (1 - f))**2
-    lat = atan2(z_earth, r * (1 - e2))
-    
-    # Convert from radians to degrees
-    lat = degrees(lat)
-    lon = degrees(lon)
-    
-    # Normalize longitude to the range [-180, 180]
-    if lon > 180:
-        lon -= 360
-    elif lon < -180:
-        lon += 360
-    
-    return lat, lon
-
-def tle_to_lat_lon(line1, line2, jd):
+# Function to compute satellite lat/lon/alt
+def get_satellite_lat_lon_alt(line1, line2):
     satellite = Satrec.twoline2rv(line1, line2)
-    jd_int = int(jd)
-    fr = jd - jd_int
-    error_code, position, _ = satellite.sgp4(jd_int, fr)
-    
-    if error_code != 0:
-        raise RuntimeError(f"Error in propagation: {error_code}")
-    
-    print(f"Position (ECI): {position}")
-    lat, lon = eci_to_lat_lon(position, jd)
-    return lat, lon
 
-def main():
-    file_path = "C:\\Users\\HP\\Desktop\\Python Scripts\\spacetrack_TLE.txt"
-    tle_data = read_tle_from_file(file_path)
-    
-    if len(tle_data) < 2:
-        raise ValueError("Insufficient TLE data in the file")
-    
-    for i in range(0, len(tle_data), 3):
-        if i + 2 < len(tle_data):
-            sat_name = tle_data[i]
-            line1 = tle_data[i + 1]
-            line2 = tle_data[i + 2]
-            jd = parse_jday_from_tle(line1)
-            latitude, longitude = tle_to_lat_lon(line1, line2, jd)
-            print(f"Satellite Name: {sat_name}")
-            print(f"Latitude: {latitude:.6f}")
-            print(f"Longitude: {longitude:.6f}")
+    # Get current UTC time
+    current_time = datetime.now(timezone.utc)
 
-if __name__ == "__main__":
-    main()
+    # Convert current time to Julian Date
+    jd, fr = jday(current_time.year, current_time.month, current_time.day,
+                  current_time.hour, current_time.minute, current_time.second)
+
+    # Propagate the satellite's position
+    error, r, v = satellite.sgp4(jd, fr)
+    if error != 0:
+        raise ValueError(f"SGP4 propagation error: {error}")
+
+    # Extract ECI coordinates (in kilometers)
+    x, y, z = r  # TEME (True Equator, Mean Equinox) frame
+
+    # Convert TEME to ECEF using Astropy
+    teme_coords = TEME(x=x * u.km, y=y * u.km, z=z * u.km,
+                        representation_type="cartesian",
+                        obstime=Time(jd + fr, format='jd', scale='utc'))
+    
+    ecef_coords = teme_coords.transform_to(ITRS(obstime=teme_coords.obstime))
+
+    # Extract ECEF coordinates in meters
+    xecef, yecef, zecef = ecef_coords.x.to(u.m).value, ecef_coords.y.to(u.m).value, ecef_coords.z.to(u.m).value
+
+    # Convert from ECEF to geodetic latitude, longitude, and altitude
+    lat, lon, alt = pm.ecef2geodetic(xecef, yecef, zecef)
+
+    # Normalize longitude to be within 0° to 360° (East-positive)
+    lon = lon % 360
+
+    return lat, lon, alt
+
+# Compute satellite position
+lat, lon, alt = get_satellite_lat_lon_alt(tle_line1, tle_line2)
+
+# Format output
+lat_str = f"{abs(lat):.6f}° {'N' if lat >= 0 else 'S'}"
+lon_str = f"{abs(lon):.6f}° {'E' if lon >= 0 else 'W'}"
+
+# Print results
+print(f"Satellite: {tle_name}")
+print(f"Latitude: {lat_str}")
+print(f"Longitude: {lon_str}")
+print(f"Altitude: {alt:.2f} meters")
+
