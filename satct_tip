@@ -1,0 +1,43 @@
+import requests
+import csv
+
+def main():
+    try:
+        base_url = "https://www.globalsentinel.net"
+        auth_path = "/ajaxauth/login"
+        user_name = "enterusername"
+        password = "enterpassworrd"  #this will need to be changed on the day
+        query = "basicspacedata/query/class/tip/orderby/NORAD_CAT_ID%20asc/emptyresult/show/format/csv"
+
+        session = requests.Session()
+        auth_response = session.post(base_url + auth_path, data={"identity": user_name, "password": password})
+
+        # Check if authentication was successful
+        if auth_response.status_code != 200:
+            raise Exception(f"Authentication failed: {auth_response.status_code} - {auth_response.text}")
+
+        response = session.get(base_url + query)
+
+        # Debugging: Print the actual response headers and text
+        #print("Response Headers:", response.headers)
+        #print("Response Text:", response.text[:500])  # Print only the first 500 characters for brevity
+
+        # Check if the response is in CSV format
+        if "application/csv" in response.headers.get('Content-Type', ''):
+            # Specify the CSV file name
+            csv_file = "spacetrack_TIP.csv"
+
+            # Write the response content directly to the CSV file
+            with open(csv_file, mode='w', newline='') as file:
+                file.write(response.text)
+            print(f"Data successfully saved to {csv_file}")
+        else:
+            raise ValueError("Response is not in CSV format")
+
+        session.get(base_url + "/ajaxauth/logout")
+
+    except Exception as e:
+        print("Error:", e)
+
+if __name__ == "__main__":
+    main()
