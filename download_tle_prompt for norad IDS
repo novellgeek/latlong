@@ -1,0 +1,26 @@
+import requests
+
+def main():
+    try:
+        base_url = "https://www.space-track.org"
+        auth_path = "/ajaxauth/login"
+        user_name = "your user name"
+        password = "your password"
+        norad_cat_ids = input("Enter the NORAD category IDs, separated by commas: ")
+        query = f"/basicspacedata/query/class/gp/NORAD_CAT_ID/{norad_cat_ids}//EPOCH/%3Enow-30/orderby/NORAD_CAT_ID/format/3le"
+
+        session = requests.Session()
+        session.post(base_url + auth_path, data={"identity": user_name, "password": password})
+
+        response = session.get(base_url + query)
+        
+        with open("spacetrack_TLE.txt", "w") as file:
+            file.write(response.text)
+
+        session.get(base_url + "/ajaxauth/logout")
+
+    except Exception as e:
+        print(e)
+
+if __name__ == "__main__":
+    main()
