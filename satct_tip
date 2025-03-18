@@ -7,7 +7,7 @@ def main():
         auth_path = "/ajaxauth/login"
         user_name = "enterusername"
         password = "enterpassworrd"  #this will need to be changed on the day
-        query = "basicspacedata/query/class/tip/orderby/NORAD_CAT_ID%20asc/emptyresult/show/format/csv"
+        query = "/basicspacedata/query/class/tip/orderby/NORAD_CAT_ID%20asc/emptyresult/show/format/csv"
 
         session = requests.Session()
         auth_response = session.post(base_url + auth_path, data={"identity": user_name, "password": password})
