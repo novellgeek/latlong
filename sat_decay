@@ -5,8 +5,8 @@ def main():
     try:
         base_url = "https://www.space-track.org"
         auth_path = "/ajaxauth/login"
-        user_name = "hqjfnz.space.operations.centre@nzdf.mil.nz"
-        password = "N3bula-Chugg6-1"
+        user_name = "your username"
+        password = "your password"
         query = "/basicspacedata/query/class/decay/DECAY_EPOCH/2025-01-01--2025-03-03/orderby/NORAD_CAT_ID,PRECEDENCE/format/csv"
 
         session = requests.Session()
