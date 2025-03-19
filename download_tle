@@ -5,8 +5,8 @@ def main():
     try:
         base_url = "https://www.space-track.org"
         auth_path = "/ajaxauth/login"
-        user_name = "phil@holdstock.co.nz"
-        password = "FatherDougal123*"
+        user_name = "your user name" # enter Spacetrack usernmae
+        password = "your password" # enter Space Track password
         norad_cat_ids = read_norad_cat_ids_from_column_b("C:\\Spacetrack\\spacetrack.csv")
         query = f"/basicspacedata/query/class/gp/NORAD_CAT_ID/{norad_cat_ids}//EPOCH/%3Enow-30/orderby/NORAD_CAT_ID/format/3le"
 
