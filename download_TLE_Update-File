@@ -1,0 +1,41 @@
+import requests
+
+def main():
+    try:
+        base_url = "https://www.space-track.org"
+        auth_path = "/ajaxauth/login"
+        user_name = "your user name"  # Replace with your actual username
+        password = "your password"    # Replace with your actual password
+        query = "/basicspacedata/query/class/gp/orderby/EPOCH%20desc/limit/100/format/3le"
+
+        session = requests.Session()
+        session.post(base_url + auth_path, data={"identity": user_name, "password": password})
+
+        response = session.get(base_url + query)
+        new_data = response.text.strip()
+
+        # Read the existing data
+        try:
+            with open("spacetrack_TLE.txt", "r") as file:
+                existing_data = file.read().strip()
+        except FileNotFoundError:
+            existing_data = ""
+
+        # Split the TLE data into individual entries
+        existing_tles = set(existing_data.split("\n\n"))
+        new_tles = set(new_data.split("\n\n"))
+
+        # Update existing TLEs and add new ones
+        updated_tles = existing_tles.union(new_tles)
+
+        # Write the updated TLEs back to the file
+        with open("spacetrack_TLE.txt", "w") as file:
+            file.write("\n\n".join(updated_tles))
+
+        session.get(base_url + "/ajaxauth/logout")
+
+    except Exception as e:
+        print(e)
+
+if __name__ == "__main__":
+    main()
